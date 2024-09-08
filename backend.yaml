@@ -1,7 +1,10 @@
 - name: configure backend server
   hosts: backend
   become: yes
-  tasks: 
+  vars:
+    mysql_root_password: ExpenseApp@1
+    login_host: mysql.daws81s.online
+  tasks:
   - name: disable default nodejs
     ansible.builtin.command: dnf module disable nodejs -y
 
@@ -10,12 +13,15 @@
 
   - name: install nodejs
     ansible.builtin.package:
-      name: nodejs
+      name: "{{ item }}"
       state: present
+    loop:
+    - nodejs
+    - mysql
 
   - name: create expense user
     ansible.builtin.user:
-     name: expense
+      name: expense
 
   - name: create app directory
     ansible.builtin.file:
@@ -29,7 +35,7 @@
 
   - name: extract the code
     ansible.builtin.unarchive:
-      src: /tmp/backend.zip
+      src: /tmp/backend.zip #by default ansible thinks this is in ansible server
       dest: /app
       remote_src: yes
 
@@ -43,6 +49,13 @@
       src: backend.service
       dest: /etc/systemd/system/backend.service
 
+  - name: ansible to install pymysql
+    ansible.builtin.pip:
+      name:
+      - PyMySQL
+      - cryptography
+      executable: pip3.9
+
   - name: import mysql data
     community.mysql.mysql_db:
       login_user: root
@@ -51,3 +64,4 @@
       target: /app/schema/backend.sql
       name: all
       state: import
+
